@@ -129,7 +129,19 @@ This project solves that by implementing:
 
 ---
 
-## üì∑ Demo / Screenshots
+## ??? Frontend Overview
+
+The `frontend/index.html` file now delivers the dashboard that powers the user experience in this repo. It reads from `/instance` and renders thematic cards for hostname, scaling status, CPU utilization, RPS, latency, and desired capacity, plus:
+
+* A Live Timeline of autoscaling signals that rotates every few seconds.
+* AWS-focused highlight tiles covering Auto Scaling Group, ALB, VPC/networking, and monitoring.
+* A control panel with a slider, notification banner, and theme picker (Night Mode, Sunset Glow, Light/Paper, and Simple Light).
+
+## ?? Running Locally
+
+1. `cd backend && npm install` (once) to install dependencies.
+2. Run `npm start` so Express serves the `/instance`, `/health`, and the static frontend from `http://localhost:3000`.
+3. Open the browser, click ìCheck Instance,î tweak the slider if desired, and switch themes to see the palettes.## üì∑ Demo / Screenshots
 
 > Add screenshots of:
 
@@ -208,3 +220,4 @@ It reflects key **Cloud & DevOps engineering principles**, making it a strong fo
 ---
 
 ‚≠ê *Built with a focus on scalability, reliability, and real-world cloud practices.*
+

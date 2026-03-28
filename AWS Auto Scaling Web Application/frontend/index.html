@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS Auto Scaling Web App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg: #020617;
+      --card: rgba(15, 23, 42, 0.95);
+      --card-alt: rgba(15, 23, 42, 0.55);
+      --accent: #f97316;
+      --text: #e2e8f0;
+      --highlight: #38bdf8;
+      --soft: rgba(148, 163, 184, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.3), transparent 40%),
+        radial-gradient(circle at 80% 0, rgba(34, 197, 94, 0.15), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background 0.6s ease, color 0.3s ease;
+    }
+
+    body[data-theme="dark"] {
+      --card: rgba(15, 23, 42, 0.95);
+      --card-alt: rgba(15, 23, 42, 0.55);
+      --text: #e2e8f0;
+      --soft: rgba(148, 163, 184, 0.25);
+    }
+
+    body[data-theme="sunset"] {
+      background: radial-gradient(circle at 25% 20%, rgba(251, 191, 36, 0.3), transparent 40%),
+        radial-gradient(circle at 75% 5%, rgba(239, 68, 68, 0.2), transparent 32%),
+        #020617;
+      color: #ffe8d6;
+      --card: rgba(15, 23, 42, 0.85);
+      --soft: rgba(251, 191, 36, 0.25);
+    }
+
+    body[data-theme="light"] {
+      background: radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08), transparent 40%),
+        radial-gradient(circle at 80% 10%, rgba(147, 197, 253, 0.1), transparent 45%),
+        #f8fafc;
+      color: #0f172a;
+      --card: rgba(255, 255, 255, 0.95);
+      --card-alt: rgba(255, 255, 255, 0.92);
+      --text: #0f172a;
+      --soft: rgba(15, 23, 42, 0.08);
+    }
+
+    body[data-theme="simple"] {
+      background: #f5f5f5;
+      color: #0f172a;
+      --card: #ffffff;
+      --card-alt: rgba(248, 250, 252, 0.9);
+      --soft: rgba(15, 23, 42, 0.1);
+    }
+
+    main {
+      padding: 2rem 1rem 3rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      position: relative;
+      padding: 2.5rem 1rem;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      inset: 5% 12%;
+      border-radius: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      filter: blur(1px);
+    }
+
+    h1 {
+      font-size: clamp(2.6rem, 4vw, 3.8rem);
+      margin-bottom: 0.5rem;
+    }
+
+    p.lead {
+      font-size: 1.125rem;
+      margin: 0 auto 1.5rem;
+      max-width: 640px;
+      color: rgba(226, 232, 240, 0.9);
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.85rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      color: #fff;
+      background: linear-gradient(135deg, #f97316, #fb923c);
+      box-shadow: 0 10px 25px rgba(249, 115, 22, 0.35);
+    }
+
+    button.secondary {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: transparent;
+      color: var(--text);
+      box-shadow: none;
+      transition: background 0.3s ease;
+    }
+
+    button.secondary:hover,
+    button:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: var(--text);
+      padding: 0.6rem 1.2rem;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    select:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    body[data-theme="light"] select {
+      background: rgba(15, 23, 42, 0.04);
+      border-color: rgba(15, 23, 42, 0.2);
+      color: #0f172a;
+    }
+
+    section {
+      margin-bottom: 2.5rem;
+      padding: 0 0.5rem;
+    }
+
+    .section-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 0.5rem;
+    }
+
+    .section-gap {
+      padding-top: 0.5rem;
+    }
+
+    .grid,
+    .stat-grid,
+    .aws-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .grid {
+      margin-top: 1rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 70%);
+      pointer-events: none;
+    }
+
+    .metric {
+      font-size: 2.25rem;
+      font-weight: 600;
+    }
+
+    .label {
+      color: rgba(226, 232, 240, 0.6);
+      font-size: 0.95rem;
+    }
+
+    body[data-theme="light"] h1,
+    body[data-theme="light"] h2,
+    body[data-theme="light"] strong,
+    body[data-theme="light"] .label,
+    body[data-theme="light"] .status-description,
+    body[data-theme="light"] .site-footer,
+    body[data-theme="light"] .tip p,
+    body[data-theme="light"] .timeline-time,
+    body[data-theme="simple"] h1,
+    body[data-theme="simple"] h2,
+    body[data-theme="simple"] strong,
+    body[data-theme="simple"] .label,
+    body[data-theme="simple"] .status-description,
+    body[data-theme="simple"] .site-footer,
+    body[data-theme="simple"] .tip p,
+    body[data-theme="simple"] .timeline-time {
+      color: #0f172a;
+    }
+
+    .glow {
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 60%);
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      filter: blur(25px);
+      opacity: 0.5;
+      right: -30px;
+      top: -10px;
+    }
+
+    .status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .status-pill {
+      padding: 0.55rem 1rem;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .status-description {
+      color: rgba(226, 232, 240, 0.75);
+      font-size: 0.95rem;
+      margin-top: 0.4rem;
+    }
+
+    .metric-chart {
+      display: flex;
+      gap: 0.4rem;
+      align-items: flex-end;
+      height: 70px;
+      margin-top: 1.2rem;
+    }
+
+    .metric-chart span {
+      flex: 1;
+      border-radius: 6px;
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.9), rgba(37, 99, 235, 0.4));
+      transition: height 0.6s ease;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .step {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      gap: 0.75rem;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.2);
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+      color: #a5b4fc;
+    }
+
+    .timeline {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .timeline li {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      border: 1px solid var(--soft);
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .timeline-time {
+      font-size: 0.85rem;
+      color: rgba(226, 232, 240, 0.5);
+      text-align: right;
+    }
+
+    body[data-theme="light"] .timeline-time,
+    body[data-theme="simple"] .timeline-time {
+      color: rgba(15, 23, 42, 0.6);
+    }
+
+    body[data-theme="light"] .step,
+    body[data-theme="light"] .timeline li,
+    body[data-theme="light"] .tip,
+    body[data-theme="light"] .aws-card,
+    body[data-theme="simple"] .step,
+    body[data-theme="simple"] .timeline li,
+    body[data-theme="simple"] .tip,
+    body[data-theme="simple"] .aws-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(15, 23, 42, 0.08);
+      color: #0f172a;
+    }
+
+    body[data-theme="light"] .tip p,
+    body[data-theme="simple"] .tip p {
+      color: #0f172a;
+    }
+
+    .control-panel {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-top: 1.5rem;
+    }
+
+    .control-panel label {
+      font-size: 0.9rem;
+      color: rgba(226, 232, 240, 0.7);
+    }
+
+    .control-panel input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .notification {
+      background: rgba(59, 130, 246, 0.08);
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 0.9rem 1rem;
+      font-size: 0.9rem;
+      color: #bfdbfe;
+      margin-top: 1rem;
+    }
+
+    body[data-theme="light"] .notification,
+    body[data-theme="simple"] .notification {
+      background: rgba(59, 130, 246, 0.07);
+      border-color: rgba(59, 130, 246, 0.25);
+      color: #075985;
+    }
+
+    .aws-grid {
+      margin-top: 1rem;
+    }
+
+    .aws-card {
+      background: rgba(15, 23, 42, 0.85);
+      border-radius: 16px;
+      padding: 1.25rem;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    body[data-theme="light"] .aws-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(59, 130, 246, 0.25);
+    }
+
+    .aws-card strong {
+      color: var(--highlight);
+      font-size: 1.1rem;
+    }
+
+    .aws-card p {
+      margin: 0;
+      color: rgba(226, 232, 240, 0.75);
+      font-size: 0.95rem;
+    }
+
+    body[data-theme="light"] .aws-card strong,
+    body[data-theme="light"] .aws-card p,
+    body[data-theme="light"] .aws-card {
+      color: #0f172a;
+    }
+
+    .site-footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: rgba(226, 232, 240, 0.7);
+    }
+
+    body[data-theme="light"] .site-footer,
+    body[data-theme="simple"] .site-footer {
+      color: #0f172a;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(249, 115, 22, 0.35);
+      }
+      50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 35px rgba(249, 115, 22, 0.45);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(249, 115, 22, 0.35);
+      }
+    }
+
+    .pulse {
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 1.5rem 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>🚀 AWS Auto Scaling Web App</h1>
+      <p class="lead">
+        Visualize your fleet health, get instant signals, and interact with scaling controls
+        without leaving the console.
+      </p>
+      <div class="hero-actions">
+        <button class="pulse" id="check-btn">Check Instance</button>
+        <select id="theme-select" aria-label="Theme selector">
+          <option value="dark">Night Mode</option>
+          <option value="sunset">Sunset Glow</option>
+          <option value="light">Light / Paper</option>
+          <option value="simple">Simple Light</option>
+        </select>
+        <span id="clock" class="label" style="align-self:center"></span>
+      </div>
+    </header>
+
+    <section class="section-gap">
+      <div class="section-inner">
+        <div class="grid">
+          <article class="card">
+            <div class="glow"></div>
+            <div>
+              <div class="metric" id="instance-name">—</div>
+              <div class="label">Most recently served host</div>
+            </div>
+            <small class="label">Updated <span id="instance-time">waiting...</span></small>
+          </article>
+          <article class="card">
+            <div class="metric" id="scale-status">—</div>
+            <div class="label">Scaling Status</div>
+            <div class="status">
+              <span class="status-pill" id="status-pill">Idle</span>
+            </div>
+            <p class="status-description" id="status-desc">All systems nominal.</p>
+          </article>
+          <article class="card">
+            <div class="metric" id="load">—%</div>
+            <div class="label">Average CPU Utilization</div>
+            <div class="metric-chart" id="load-chart">
+              <span style="height:45%"></span>
+              <span style="height:52%"></span>
+              <span style="height:38%"></span>
+              <span style="height:60%"></span>
+              <span style="height:32%"></span>
+            </div>
+          </article>
+        </div>
+        <div class="stat-grid">
+          <article class="card">
+            <div class="label">Requests per second</div>
+            <div class="metric" id="rps">—</div>
+          </article>
+          <article class="card">
+            <div class="label">Average latency</div>
+            <div class="metric" id="latency">— ms</div>
+          </article>
+          <article class="card">
+            <div class="label">Desired capacity</div>
+            <div class="metric" id="capacity">— instances</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-gap">
+      <div class="section-inner">
+        <h2 style="margin-bottom: 0.75rem">Auto Scaling Signals</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div>
+              <strong>Traffic spike detected</strong>
+              <p style="margin: 0.2rem 0 0; font-size: 0.9rem; color: #cbd5f5">
+                Load balancer reports 68% increase over 5 minutes.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <strong>Scale policy consulted</strong>
+              <p style="margin: 0.2rem 0 0; font-size: 0.9rem; color: #cbd5f5">
+                CPU usage surpasses 65% threshold. Target group still healthy at 97%—no throttles.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <strong>Predictive cooldown</strong>
+              <p style="margin: 0.2rem 0 0; font-size: 0.9rem; color: #cbd5f5">
+                Calm period expected in ~4 min; new instances kept warm to absorb the next surge.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-gap">
+      <div class="section-inner">
+        <h2 style="margin-bottom: 0.75rem">Live timeline</h2>
+        <ul class="timeline" id="timeline">
+          <li>
+            <div class="timeline-time">Just now</div>
+            <div>
+              <strong>Instance check pinged</strong>
+              <p style="margin: 0; font-size: 0.9rem; color: #cbd5f5">Latency is 120 ms.</p>
+            </div>
+            <span class="status-pill">Info</span>
+          </li>
+          <li>
+            <div class="timeline-time">2m ago</div>
+            <div>
+              <strong>Scaling event monitored</strong>
+              <p style="margin: 0; font-size: 0.9rem; color: #cbd5f5">Policy recommends +1 instance.</p>
+            </div>
+            <span class="status-pill">Stable</span>
+          </li>
+          <li>
+            <div class="timeline-time">5m ago</div>
+            <div>
+              <strong>Health check</strong>
+              <p style="margin: 0; font-size: 0.9rem; color: #cbd5f5">All targets healthy.</p>
+            </div>
+            <span class="status-pill">Good</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section-gap">
+      <div class="section-inner">
+        <h2 style="margin-bottom: 0.75rem">AWS in focus</h2>
+        <div class="aws-grid">
+          <article class="aws-card">
+            <strong>Auto Scaling Group</strong>
+            <p>Maintains desired capacity across Availability Zones using scaling policies triggered by CPU, RPS, or custom CloudWatch metrics.</p>
+            <p>Self-healing replaces failed instances automatically.</p>
+          </article>
+          <article class="aws-card">
+            <strong>Application Load Balancer</strong>
+            <p>Routes HTTP/HTTPS traffic across multiple EC2 targets while performing health checks.</p>
+            <p>Supports content-based routing for blue/green deployments.</p>
+          </article>
+          <article class="aws-card">
+            <strong>VPC & Networking</strong>
+            <p>Public subnets host ALB; private subnets keep EC2 instances isolated.</p>
+            <p>Security groups control ports, while route tables enforce isolation.</p>
+          </article>
+          <article class="aws-card">
+            <strong>Monitoring & Alerts</strong>
+            <p>CloudWatch collects metrics (CPU, latency, requests) that feed Auto Scaling decisions.</p>
+            <p>Alarms trigger SNS notifications and can be tied to Lambda or Step Functions.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-gap">
+      <div class="section-inner">
+        <div class="control-panel">
+          <label for="capacity-range">Target capacity: <span id="capacity-value">2</span> instances</label>
+          <input type="range" min="1" max="10" id="capacity-range" value="2" />
+          <button id="apply-scale" class="secondary">Apply scale action</button>
+          <div id="control-notice" class="notification">No edits applied yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-gap">
+      <div class="section-inner">
+        <h2 style="margin-bottom: 0.75rem">Quick Tips</h2>
+        <div class="animated-list" id="tips-list">
+          <div class="tip">
+            <strong>Blue/green ready</strong>
+            <p>Swap traffic by increasing the blue environment once warm instances reach 90% capacity.</p>
+          </div>
+          <div class="tip">
+            <strong>Budget watch</strong>
+            <p>Combine scheduled scaling with spot instances to control costs during predictable dips.</p>
+          </div>
+          <div class="tip">
+            <strong>Health checks</strong>
+            <p>Enable ELB health checks and mark unhealthy units for replacement automatically.</p>
+          </div>
+          <div class="tip">
+            <strong>Notifications</strong>
+            <p>Subscribe to SNS alerts for Metric Alarms so you can act before capacity saturates.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  <p id="output" class="label"></p>
+  </main>
+
+  <footer class="site-footer">© 2026 Tanay Sasane. All rights reserved.</footer>
+
+  <script>
+    const checkBtn = document.getElementById("check-btn");
+    const themeSelect = document.getElementById("theme-select");
+    const instanceName = document.getElementById("instance-name");
+    const scaleStatus = document.getElementById("scale-status");
+    const statusPill = document.getElementById("status-pill");
+    const statusDesc = document.getElementById("status-desc");
+    const loadLabel = document.getElementById("load");
+    const rpsLabel = document.getElementById("rps");
+    const latencyLabel = document.getElementById("latency");
+    const capacityLabel = document.getElementById("capacity");
+    const instanceTime = document.getElementById("instance-time");
+    const output = document.getElementById("output");
+    const loadChart = document.getElementById("load-chart");
+    const timeline = document.getElementById("timeline");
+    const capacityRange = document.getElementById("capacity-range");
+    const capacityValue = document.getElementById("capacity-value");
+    const applyScale = document.getElementById("apply-scale");
+    const controlNotice = document.getElementById("control-notice");
+
+    const tips = [
+      "Automate scaling policies when predictable traffic windows arrive daily.",
+      "Keep your AMI patched so that new instances are compliant as soon as they're launched.",
+      "Use Scheduled Actions to pre-scale before known campaigns or product drops.",
+      "Monitor CloudWatch Billing metrics to avoid surprise costs when Auto Scaling kicks in.",
+    ];
+
+    const timelineEvents = [
+      { label: "Scale policy warmed up", note: "+1 instance pre-spun due to burst" },
+      { label: "Steady state", note: "CPU 58%, requests stable" },
+      { label: "Latency alert resolved", note: "Retry logic mitigated spikes" },
+      { label: "Autoscaling resync", note: "Cooldown cleared after 4 minutes" },
+    ];
+
+    function applyTheme(theme) {
+      document.body.dataset.theme = theme;
+    }
+
+    function shuffleTips() {
+      const container = document.getElementById("tips-list");
+      const existing = Array.from(container.children);
+      existing.forEach((node, idx) => {
+        node.querySelector("p").textContent =
+          tips[(idx + Math.floor(Math.random() * tips.length)) % tips.length];
+      });
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const human = now.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      document.getElementById("clock").textContent = "Last sync: " + human;
+    }
+
+    function updateChart() {
+      const bars = Array.from(loadChart.children);
+      bars.forEach((bar) => {
+        bar.style.height = `${Math.random() * 60 + 30}%`;
+      });
+    }
+
+    function rotateTimeline() {
+      const now = new Date();
+      timeline.innerHTML = "";
+      for (let i = 0; i < 3; i++) {
+        const event = timelineEvents[(Math.floor(Math.random() * timelineEvents.length) + i) % timelineEvents.length];
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <div class="timeline-time">${now.getMinutes()}:${now.getSeconds().toString().padStart(2, "0")}</div>
+          <div>
+            <strong>${event.label}</strong>
+            <p style="margin: 0; font-size: 0.9rem; color: #cbd5f5">${event.note}</p>
+          </div>
+          <span class="status-pill">${i === 0 ? "Active" : "Info"}</span>
+        `;
+        timeline.appendChild(li);
+      }
+    }
+
+    async function getInstance() {
+      try {
+        checkBtn.disabled = true;
+        checkBtn.textContent = "Checking...";
+        const res = await fetch("/instance");
+        if (!res.ok) {
+          throw new Error("Instance fetch failed");
+        }
+        const data = await res.json();
+        const hostname = data.hostname || "Unknown host";
+        instanceName.textContent = hostname;
+        instanceTime.textContent = new Date().toLocaleTimeString();
+        scaleStatus.textContent = data.scaleState || "Steady";
+        statusPill.textContent = data.scaleState ? data.scaleState : "Monitoring";
+        statusDesc.textContent = data.message || "Autoscaling policies are healthy.";
+        loadLabel.textContent = Math.floor(Math.random() * (70 - 42 + 1) + 42) + "%";
+        rpsLabel.textContent = Math.floor(Math.random() * (400 - 120) + 120);
+        latencyLabel.textContent = (Math.random() * 80 + 60).toFixed(0) + " ms";
+        capacityLabel.textContent = `${capacityRange.value} instances`;
+        output.textContent = `Served by: ${hostname}`;
+      } catch (err) {
+        output.textContent = "Unable to reach the instance endpoint right now.";
+      } finally {
+        checkBtn.disabled = false;
+        checkBtn.textContent = "Check Instance";
+      }
+    }
+
+    checkBtn.addEventListener("click", getInstance);
+    capacityRange.addEventListener("input", () => {
+      capacityValue.textContent = capacityRange.value;
+    });
+
+    applyScale.addEventListener("click", () => {
+      controlNotice.textContent = `Target capacity set to ${capacityRange.value} instances. Monitoring for drift.`;
+    });
+
+    themeSelect.addEventListener("change", (event) => {
+      applyTheme(event.target.value);
+    });
+
+    applyTheme("dark");
+    themeSelect.value = "dark";
+    updateClock();
+    shuffleTips();
+    updateChart();
+    rotateTimeline();
+    getInstance();
+    setInterval(updateClock, 60 * 1000);
+    setInterval(shuffleTips, 9000);
+    setInterval(updateChart, 4000);
+    setInterval(rotateTimeline, 7000);
+  </script>
+</body>
+</html>
